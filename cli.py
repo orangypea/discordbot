@@ -331,7 +331,6 @@ class spamClient(discord.Client):
                 channelcounts[channel.id]["count"] += 1
                 clear()
                 for chan in channelcounts.values():
-                    print(botType)
                     print(f"[{str(chan['count'])}] {chan['name']}")
 
 
