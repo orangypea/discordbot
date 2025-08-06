@@ -10,7 +10,7 @@ import json
 import sys
 import os
 
-settings={"token":"", "bot_token":"", "app_id":-1, "cmd_name":"", "default_preset": -1, "presets":[], "randomize":False, "auto_leave":-1}
+settings={"token":{"name":"", "token":""}, "tokens":[], "bot_tokens":[], "bot_token":{"name":"", "token":""}, "app_id":-1, "cmd_name":"", "default_preset": -1, "presets":[], "randomize":False, "auto_leave":-1, "silent":True}
 selpreset = -1
 
 def applySettings():
@@ -28,7 +28,7 @@ if (os.path.isfile("settings.json")):
 
 selpreset = settings["default_preset"]
 
-mainmenu=["Spam", "Edit Token", "Edit Application ID and Command", "Set Maximum Spam Count", "Select Preset", "Edit Presets", "Randomize Messages", "Exit", "Start Bot", "Edit Bot Token"]
+mainmenu=["Spam", "Edit Tokens", "Edit Application ID and Command", "Set Maximum Spam Count", "Select Preset", "Edit Presets", "Randomize Messages", "Exit", "Start Bot", "Edit Bot Tokens", "Silent Messages"]
 
 stdscr = curses.initscr()
 curses.noecho()
@@ -96,6 +96,16 @@ def choice(array, offsety=0, scr=stdscr):
         curpos = math.floor(option%(ymax-1))+offsety+pary
         stdscr.move(curpos, 0)
         curses.setsyx(curpos, 0)
+
+        numpos = len(array)
+        if (numpos>=ymax):
+            numpos=ymax-1
+
+        if (len(array)>ymax):
+            if (option-ymax+1<0):
+                scr.addstr(numpos+offsety, 0, "↓")
+            else:
+                scr.addstr(numpos+offsety, 0, "↑")
         curses.doupdate()
         scr.refresh()
         k=stdscr.getkey()
@@ -109,11 +119,9 @@ def choice(array, offsety=0, scr=stdscr):
             scr.clear()
             if (int(num)<len(array)):
                 option=int(num)
-            numpos = len(array)
-            if (numpos>=ymax):
-                numpos=ymax-1
-            scr.addstr(numpos+offsety, 0, k)
+            scr.addstr(numpos+offsety, 0, num)
             while (True):
+                scr.clear()
                 for i,v in enumerate(array):
                     if (i > (ymax-1)*math.floor(option/(ymax-1))+ymax-2-offsety):
                         break
@@ -126,6 +134,7 @@ def choice(array, offsety=0, scr=stdscr):
                 curpos = math.floor(option%(ymax-1))+offsety+pary
                 stdscr.move(curpos, 0)
                 curses.setsyx(curpos, 0)
+                scr.addstr(numpos+offsety, 0, num)
                 curses.doupdate()
                 scr.refresh()
                 k=stdscr.getkey()
@@ -141,7 +150,7 @@ def choice(array, offsety=0, scr=stdscr):
                         num=""
                         break
                     num = num[:-1]
-                    scr.addstr(numpos+offsety, len(num), " ")
+                    scr.addstr(numpos+offsety, 0, num)
                 elif (not k.isdigit):
                     num=""
             if (num!=""):
@@ -151,6 +160,7 @@ def choice(array, offsety=0, scr=stdscr):
             return option
 
 guild_id=0
+user_spam=False
 
 def clear():
     os.system('cls' if os.name == 'nt' else "printf '\033c'")
@@ -160,6 +170,7 @@ class spamClient(discord.Client):
     global settings
     global selpreset
     global guild_id
+    global user_spam
 
     async def fetch_channels(self, guild, user):
         mchannels = []
@@ -192,41 +203,44 @@ class spamClient(discord.Client):
         curses.endwin()
         clear()
         print(f"Logged in as {self.user}!")
-        # get bot auth
         app=None
-        for auth in await self.authorizations():
-            if auth.application.id == settings["app_id"]:
-                app = auth.application
-        if (app == None):
-            print("Application is not installed, or wrong ID was provided.")
-            sys.exit(1)
-
         cmd=None
-        for command in await app.bot.application_commands():
-            if (command.name.lower().find(settings["cmd_name"].lower()) != -1):
-                cmd=command
-        
-        if (cmd == None):
-            print("Command not found. Typo or Wrong Application ID?")
-            sys.exit(1)
-
         botType=0 # normie bot
         opt=None
-        for i,option in enumerate(cmd.options):
-            if (option.name == "slowmode"):
-                botType = 1 # new bot
-            elif (option.name == "slowmode_delay"):
-                botType = 2 # old bot
+        
+        if (not user_spam):
+            for auth in await self.authorizations():
+                if auth.application.id == settings["app_id"]:
+                    app = auth.application
+            if (app == None):
+                print("Application is not installed, or wrong ID was provided.")
+                sys.exit(1)
+
+            for command in await app.bot.application_commands():
+                if (command.name.lower().find(settings["cmd_name"].lower()) != -1):
+                    cmd=command
             
-            if (i==0):
-                opt=option
+            if (cmd == None):
+                print("Command not found. Typo or Wrong Application ID?")
+                sys.exit(1)
 
-        if (len(cmd.options) == 0):
-            botType = 3 # cucked bot (predefined spam msg)
+            for i,option in enumerate(cmd.options):
+                if (option.name == "slowmode"):
+                    botType = 1 # new bot
+                elif (option.name == "slowmode_delay"):
+                    botType = 2 # old bot
+                
+                if (i==0):
+                    opt=option
 
-        if (opt == None and botType == 0):
-            print("Option not found. Unsupported Bot?")
-            sys.exit(1)
+            if (len(cmd.options) == 0):
+                botType = 3 # cucked bot (predefined spam msg)
+
+            if (opt == None and botType == 0):
+                print("Option not found. Unsupported Bot?")
+                sys.exit(1)
+        else:
+            botType = 4 # user bot
         
         guild = self.get_guild(guild_id)
 
@@ -266,7 +280,14 @@ class spamClient(discord.Client):
         for chan in nchannels:
             channelcounts[chan.id] = {"name":chan.name, "count":0}
 
+        clear()
+        for chan in channelcounts.values():
+            print(f"[{str(chan['count'])}] {chan['name']}")
         while True:
+            if (len(channelcounts) == 0):
+                print("No channels available.")
+                sys.exit(1)
+
             if (settings["auto_leave"] != -1 and count>=settings["auto_leave"]):
                 print("Spam finished.")
                 sys.exit(0)
@@ -275,34 +296,47 @@ class spamClient(discord.Client):
                 mchannels, nchannels = await self.fetch_channels(guild, user)
             
             for channel in mchannels:
-                cmd.target_channel = channel
+                if (botType != 4):
+                    cmd.target_channel = channel
                 if (botType==0):
                     await cmd.__call__(channel=channel, **{opt.name:settings["presets"][selpreset]["spam"]})
                 elif (botType==1):
-                    await cmd.__call__(channel=channel, **{opt.name:settings["presets"][selpreset]["spam"], "randomize":settings["randomize"], "slowmode":channel.slowmode_delay>0})
+                    await cmd.__call__(channel=channel, **{opt.name:settings["presets"][selpreset]["spam"], "randomize":settings["randomize"], "slowmode":channel.slowmode_delay>0, "silent":settings["silent"]})
                 elif (botType==2):
                     await cmd.__call__(channel=channel, **{opt.name:settings["presets"][selpreset]["spam"], "randomize":settings["randomize"], "slowmode_delay":channel.slowmode_delay})
                 elif (botType==3):
                     await cmd.__call__(channel=channel)
+                elif (botType==4):
+                    for i in range(0,5):
+                        await channel.send(settings["presets"][selpreset]["spam"], silent=settings["silent"])
                 channelcounts[channel.id]["count"] += 1
+                clear()
+                for chan in channelcounts.values():
+                    print(f"[{str(chan['count'])}] {chan['name']}")
 
             for channel in nchannels:
-                cmd.target_channel = channel
+                if (botType != 4):
+                    cmd.target_channel = channel
                 if (botType==0):
                     await cmd.__call__(channel=channel, **{opt.name:settings[selpreset]["fallback"]})
                 elif (botType==1):
-                    await cmd.__call__(channel=channel, **{opt.name:settings[selpreset]["fallback"], "randomize":settings["randomize"], "slowmode":channel.slwmode_delay>0})
+                    await cmd.__call__(channel=channel, **{opt.name:settings[selpreset]["fallback"], "randomize":settings["randomize"], "slowmode":channel.slwmode_delay>0, "silent":settings["silent"]})
                 elif (botType==2):
                     await cmd.__call__(channel=channel, **{opt.name:settings[selpreset]["fallback"], "randomize":settings["randomize"], "slowmode_delay":channel.slwmode_delay})
                 elif (botType==3):
                     await cmd.__call__(channel=channel)
+                elif (botType==4):
+                    for i in range(0,5):
+                        await channel.send(settings["presets"][selpreset]["fallback"], silent=settings["silent"])
                 channelcounts[channel.id]["count"] += 1
+                clear()
+                for chan in channelcounts.values():
+                    print(botType)
+                    print(f"[{str(chan['count'])}] {chan['name']}")
 
-            clear()
-            for chan in channelcounts.values():
-                print(f"[{str(chan['count'])}] {chan['name']}")
 
 def startSpam():
+    global user_spam
     global settings
     global guild_id
     global curmenu
@@ -315,6 +349,13 @@ def startSpam():
     curses.doupdate()
     idstr=cinput(1, num_only=True)
     
+    menu=["Bot Spam", "User Spam", "Return"]
+    option=choice(menu)
+    if (option==2):
+        return
+    elif (option==1):
+        user_spam=True
+
     # start spam
     if (idstr == ""):
         return
@@ -326,7 +367,7 @@ def startSpam():
     
     guild_id = int(idstr)
     client = spamClient()
-    client.run(settings["token"], log_handler=None)
+    client.run(settings["token"]["token"], log_handler=None)
     sys.exit(0)
     return
 
@@ -346,7 +387,7 @@ def doAction(option):
                 stdscr.addstr(fn, 0, "Must specify preset.")
                 fn+=1
 
-            if (settings["token"] == ""):
+            if (settings["token"]["token"] == ""):
                 stdscr.addstr(fn, 0, "Must specify token.")
                 fn+=1
 
@@ -364,14 +405,100 @@ def doAction(option):
                 stdscr.addstr(fn, 0, "Press any key to continue...")
                 stdscr.getkey()
         elif (option == 1):
-            stdscr.clear()
-            stdscr.addstr(0, 0, "New Token: ")
-            stdscr.move(1, 0)
-            curses.setsyx(1, 0)
-            curses.doupdate()
-            tkstr=cinput(1)
-            settings["token"] = tkstr
-            applySettings()
+            menu = stdscr.subwin(9+1, 70, 1, 0)
+            menu.box()
+            while True:
+                stdscr.clear()
+                stdscr.addstr(0, 0, "Select Token:")
+                stdscr.refresh()
+                array=["Return", "Add Token", "Remove Token", "Rename Token"]
+                for tk in settings["tokens"]:
+                    if (tk["token"] == settings["token"]["token"]):
+                        array.append("* "+tk["name"])
+                    else:
+                        array.append("  "+tk["name"])
+                option = choice(array, 0, menu)
+                if (option == 0):
+                    break
+                elif (option == 1):
+                    stdscr.clear()
+                    stdscr.addstr(0, 0, "New Token Name: ")
+                    stdscr.refresh()
+                    stdscr.move(1, 0)
+                    curses.setsyx(1, 0)
+                    curses.doupdate()
+                    namestr=cinput(1)
+                    stdscr.clear()
+                    stdscr.addstr(0, 0, "New Token: ")
+                    stdscr.refresh()
+                    stdscr.move(1, 0)
+                    curses.setsyx(1, 0)
+                    curses.doupdate()
+                    tkstr=cinput(1)
+                    if (tkstr==""):
+                        continue
+                    brk = False
+                    for token in settings["tokens"]:
+                        if (token["token"] == tkstr):
+                            stdscr.clear()
+                            stdscr.addstr(0, 0, f"Token already exists as \"{token['name']}\"!")
+                            stdscr.refresh()
+                            time.sleep(2)
+                            brk = True
+                            break
+                    if (brk):
+                        continue
+                    settings["tokens"].append({"name":namestr, "token":tkstr})
+                    if (settings["token"]["token"] == ""):
+                        settings["token"] = {"name":namestr, "token":tkstr}
+                    applySettings()
+                elif (option == 2):
+                    stdscr.clear()
+                    stdscr.addstr(0, 0, "Select Token to DELETE:")
+                    stdscr.refresh()
+                    menu = stdscr.subwin(9+1, 70, 1, 0)
+                    menu.box()
+                    array=["Return"]
+                    for token in settings["tokens"]:
+                        array.append(token["name"])
+
+                    token = choice(array, 0, menu)
+                    if (token==0):
+                        continue
+                    if (settings["tokens"][token-1]["token"] == settings["token"]["token"]):
+                        settings["token"]["token"] = ""
+                    del settings["tokens"][token-1]
+                    applySettings()
+                elif (option == 3):
+                    stdscr.clear()
+                    stdscr.addstr(0, 0, "Select Token to Rename:")
+                    stdscr.refresh()
+                    menu = stdscr.subwin(9+1, 70, 1, 0)
+                    menu.box()
+                    array=["Return"]
+                    for token in settings["tokens"]:
+                        array.append(token["name"])
+
+                    token = choice(array, 0, menu)-1
+                    if (token==-1):
+                        continue
+
+                    stdscr.clear()
+                    stdscr.addstr(0, 0, "New Token Name: ")
+                    stdscr.move(1, 0)
+                    curses.setsyx(1, 0)
+                    curses.doupdate()
+                    stdscr.refresh()
+                    namestr=cinput(1)
+                    
+                    if (namestr == ""):
+                        continue
+                    settings["tokens"][token]["name"] = namestr
+                    applySettings()
+                else:
+                    settings["token"] = settings["tokens"][option-4]
+                    applySettings()
+                    
         elif (option == 2):
             stdscr.clear()
             stdscr.addstr(0, 0, "Application ID: ")
@@ -519,7 +646,7 @@ def doAction(option):
                     applySettings()
                 elif (option == 4):
                     stdscr.clear()
-                    stdscr.addstr(0, 0, "Select Preset to set as default:")
+                    stdscr.addstr(0, 0, "Select Preset to Set as Default:")
                     array=["Return"]
                     for i,preset in enumerate(settings["presets"]):
                         if (i != settings["default_preset"]):
@@ -537,7 +664,7 @@ def doAction(option):
                     applySettings()
                 elif (option == 5):
                     stdscr.clear()
-                    stdscr.addstr(0, 0, "Select Preset to clone:")
+                    stdscr.addstr(0, 0, "Select Preset to Clone:")
                     array=["Return"]
                     for preset in settings["presets"]:
                         array.append(preset["name"])
@@ -582,7 +709,7 @@ def doAction(option):
         elif (option == 7):
             loop = False
         elif (option == 8):
-            if (settings["bot_token"] == ""):
+            if (settings["bot_token"]["token"] == ""):
                 stdscr.clear()
                 stdscr.addstr(0, 0, "Must specify bot token.")
                 stdscr.addstr(1, 0, "Press any key to continue...")
@@ -600,34 +727,137 @@ def doAction(option):
                 if (term == ""):
                     stdscr.clear()
                     stdscr.addstr(0, 0, "No supported terminal emulators found.")
-                    p=subprocess.Popen(["botenv/bin/python3", "bot.py", settings["bot_token"]], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+                    p=subprocess.Popen(["botenv/bin/python3", "bot.py", settings["bot_token"]["token"]], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
                     stdscr.addstr(1, 0, f"Process has been launched at PID: {p.pid}")
                     stdscr.addstr(2, 0, "Press any key to continue...")
                     stdscr.getkey() 
                 else:
-                    subprocess.Popen([term, "-e", os.path.abspath("botenv/bin/python3") + " bot.py "+settings["bot_token"]], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+                    subprocess.Popen([term, "-e", os.path.abspath("botenv/bin/python3") + " bot.py "+settings["bot_token"]["token"]], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
             elif (os.name == "nt"):
                 try:
-                    subprocess.Popen(["botenv\\Scripts\\python", "bot.py", settings["bot_token"]], creationflags=subprocess.CREATE_NEW_CONSOLE)
+                    subprocess.Popen(["botenv\\Scripts\\python", "bot.py", settings["bot_token"]["token"]], creationflags=subprocess.CREATE_NEW_CONSOLE)
                 except Exception as e:
                     stdscr.clear()
                     stdscr.addstr(0, 0, str(e))
                     stdscr.getkey()
         elif (option == 9):
+            menu = stdscr.subwin(9+1, 70, 1, 0)
+            menu.box()
+            while True:
+                stdscr.clear()
+                stdscr.addstr(0, 0, "Select Bot Token:")
+                stdscr.refresh()
+                array=["Return", "Add Token", "Remove Token", "Rename Token"]
+                for token in settings["bot_tokens"]:
+                    if (token["token"] == settings["bot_token"]["token"]):
+                        array.append("* "+token["name"])
+                    else:
+                        array.append("  "+token["name"])
+                option = choice(array, 0, menu)
+                if (option == 0):
+                    break
+                elif (option == 1):
+                    stdscr.clear()
+                    stdscr.addstr(0, 0, "New Token Name: ")
+                    stdscr.refresh()
+                    stdscr.move(1, 0)
+                    curses.setsyx(1, 0)
+                    curses.doupdate()
+                    namestr=cinput(1)
+                    stdscr.clear()
+                    stdscr.addstr(0, 0, "New Token: ")
+                    stdscr.refresh()
+                    stdscr.move(1, 0)
+                    curses.setsyx(1, 0)
+                    curses.doupdate()
+                    tkstr=cinput(1)
+                    if (tkstr==""):
+                        continue
+                    brk = False
+                    for token in settings["bot_tokens"]:
+                        if (token["token"] == tkstr):
+                            stdscr.clear()
+                            stdscr.addstr(0, 0, f"Token already exists as \"{token['name']}\"!")
+                            stdscr.refresh()
+                            time.sleep(2)
+                            brk = True
+                            break
+                    if (brk):
+                        continue
+                    settings["bot_tokens"].append({"name":namestr, "token":tkstr})
+                    if (settings["bot_token"]["token"] == ""):
+                        settings["bot_token"] = {"name":namestr, "token":tkstr}
+                    applySettings()
+                elif (option == 2):
+                    stdscr.clear()
+                    stdscr.addstr(0, 0, "Select Token to DELETE:")
+                    stdscr.refresh()
+                    menu = stdscr.subwin(9+1, 70, 1, 0)
+                    menu.box()
+                    array=["Return"]
+                    for token in settings["bot_tokens"]:
+                        array.append(token["name"])
+
+                    token = choice(array, 0, menu)
+                    if (token==0):
+                        continue
+                    if (settings["bot_tokens"][token-1]["token"] == settings["bot_token"]["token"]):
+                        settings["bot_token"]["token"] = ""
+                    del settings["bot_tokens"][token-1]
+                    applySettings()
+                elif (option == 3):
+                    stdscr.clear()
+                    stdscr.addstr(0, 0, "Select Token to Rename:")
+                    stdscr.refresh()
+                    menu = stdscr.subwin(9+1, 70, 1, 0)
+                    menu.box()
+                    array=["Return"]
+                    for token in settings["bot_tokens"]:
+                        array.append(token["name"])
+
+                    token = choice(array, 0, menu)-1
+                    if (token==-1):
+                        continue
+
+                    stdscr.clear()
+                    stdscr.addstr(0, 0, "New Token Name: ")
+                    stdscr.move(1, 0)
+                    curses.setsyx(1, 0)
+                    curses.doupdate()
+                    stdscr.refresh()
+                    namestr=cinput(1)
+                    
+                    if (namestr == ""):
+                        continue
+                    settings["bot_tokens"][token]["name"] = namestr
+                    applySettings()
+                else:
+                    settings["bot_token"] = settings["bot_tokens"][option-4]
+                    applySettings()
+                    
+        elif (option == 10):
             stdscr.clear()
-            stdscr.addstr(0, 0, "New Bot Token: ")
-            stdscr.move(1, 0)
-            curses.setsyx(1, 0)
-            curses.doupdate()
-            tkstr=cinput(1)
-            settings["bot_token"] = tkstr
+            stdscr.addstr(0, 0, "Send Silent Messages?")
+            array=[]
+            if (settings["silent"]):
+                array.append("* Yes")
+                array.append("  No")
+            else:
+                array.append("  Yes")
+                array.append("* No")
+
+            menu = stdscr.subwin(1, 0)
+            menu.box()
+            option = choice(array, 0, menu)
+
+            settings["silent"] = (option == 0)
             applySettings()
 
 def main(stdscr):
     global loop
     global selpreset
     
-    menu = stdscr.subwin(len(curmenu)+1, 70, 1, 0)
+    menu = stdscr.subwin(10, 70, 1, 0)
     menu.box()
     while (loop):
         stdscr.clear()
@@ -636,14 +866,24 @@ def main(stdscr):
         else:
             if (len(settings["presets"]) > selpreset):
                 stdscr.addstr(0, 0, "Current Preset: \""+settings["presets"][selpreset]["name"]+"\"")
-        stdscr.addstr(len(curmenu)+2, 0, "Discord Spammer v2.0 - guns.lol/orangypea <3")
+        stdscr.addstr(11, 0, "Discord Spammer v2.0 - guns.lol/orangypea <3")
+        stdscr.addstr(13, 0, "Current User Token: \""+settings["token"]["name"]+"\"")
+        stdscr.addstr(14, 0, "Current Bot Token: \""+settings["bot_token"]["name"]+"\"")
         stdscr.refresh()
         doAction(choice(curmenu, 0, menu))
 
 
 
-main(stdscr)
-
+ymax, xmax = stdscr.getmaxyx()
+if (ymax <= 14 or xmax <= 70):
+    curses.nocbreak()
+    stdscr.keypad(False)
+    curses.echo()
+    curses.endwin()
+    print("Terminal screen too small! (below or equal to 14 columns/below or equal to 70 rows)")
+    sys.exit(1)
+else:
+    main(stdscr)
 curses.nocbreak()
 stdscr.keypad(False)
 curses.echo()
