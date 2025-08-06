@@ -259,6 +259,13 @@ class spamClient(discord.Client):
         clear()
 
         count=0
+        channelcounts = {}
+        
+        for chan in mchannels:
+            channelcounts[chan.id] = {"name":chan.name, "count":0}
+        for chan in nchannels:
+            channelcounts[chan.id] = {"name":chan.name, "count":0}
+
         while True:
             if (settings["auto_leave"] != -1 and count>=settings["auto_leave"]):
                 print("Spam finished.")
@@ -277,6 +284,7 @@ class spamClient(discord.Client):
                     await cmd.__call__(channel=channel, **{opt.name:settings["presets"][selpreset]["spam"], "randomize":settings["randomize"], "slowmode_delay":channel.slowmode_delay})
                 elif (botType==3):
                     await cmd.__call__(channel=channel)
+                channelcounts[channel.id]["count"] += 1
 
             for channel in nchannels:
                 cmd.target_channel = channel
@@ -288,6 +296,11 @@ class spamClient(discord.Client):
                     await cmd.__call__(channel=channel, **{opt.name:settings[selpreset]["fallback"], "randomize":settings["randomize"], "slowmode_delay":channel.slwmode_delay})
                 elif (botType==3):
                     await cmd.__call__(channel=channel)
+                channelcounts[channel.id]["count"] += 1
+
+            clear()
+            for chan in channelcounts.values():
+                print(f"[{str(chan['count'])}] {chan['name']}")
 
 def startSpam():
     global settings
