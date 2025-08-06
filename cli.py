@@ -185,7 +185,7 @@ class spamClient(discord.Client):
             if (not permissions.view_channel
                 or not permissions.read_message_history
                 or not permissions.read_messages
-                or not permissions.use_application_commands
+                or (not permissions.use_application_commands and not user_spam)
                 or not permissions.send_messages
                 ):
                 continue
