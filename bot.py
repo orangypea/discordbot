@@ -60,4 +60,4 @@ async def on_ready():
     print(f"Logged in as {client.user}!")
     print(f"Install bot at: https://discord.com/oauth2/authorize?client_id={client.application_id}")
 
-client.run(sys.argv[1]), log_handler=None)
+client.run(sys.argv[1], log_handler=None)
