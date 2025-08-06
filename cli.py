@@ -567,7 +567,7 @@ def doAction(option):
 
                     fallbackmsg = easygui.textbox("Enter Fallback Message", "Prompt", codebox=True)
 
-                    if (fallbackmsg == ""):
+                    if (fallbackmsg == "" or fallbackmsg == None):
                         fallbackmsg = spammsg
                     
                     settings["presets"].append({"name":namestr, "spam":spammsg, "fallback":fallbackmsg})
