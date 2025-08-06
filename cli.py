@@ -49,7 +49,7 @@ def cinput(offsety=0, scr=stdscr, txt="", num_only=False):
         k=stdscr.getkey()
         if (k == "\n"):
             break
-        elif (k == "KEY_BACKSPACE"):
+        elif (k == "KEY_BACKSPACE" or str.encode(k) == b'\x08'):
             if (curpos>=len(inputstr) and len(inputstr) != 0):
                 continue
             elif (len(inputstr) == 0):
@@ -136,7 +136,7 @@ def choice(array, offsety=0, scr=stdscr):
                         option=int(num)
                 elif (k == "\n"):
                     break
-                elif (k == "KEY_BACKSPACE"):
+                elif (k == "KEY_BACKSPACE" or str.encode(k) == b'\x08'):
                     if (len(num)<=1):
                         num=""
                         break
@@ -607,7 +607,12 @@ def doAction(option):
                 else:
                     subprocess.Popen([term, "-e", os.path.abspath("botenv/bin/python3") + " bot.py "+settings["bot_token"]], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
             elif (os.name == "nt"):
-                subprocess.Popen(["botenv\\Scripts\\python", "bot.py", settings["bot_token"]], creationflags=subprocess.CREATE_NEW_CONSOLE, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+                try:
+                    subprocess.Popen(["botenv\\Scripts\\python", "bot.py", settings["bot_token"]], creationflags=subprocess.CREATE_NEW_CONSOLE)
+                except Exception as e:
+                    stdscr.clear()
+                    stdscr.addstr(0, 0, str(e))
+                    stdscr.getkey()
         elif (option == 9):
             stdscr.clear()
             stdscr.addstr(0, 0, "New Bot Token: ")
