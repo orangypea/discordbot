@@ -562,7 +562,7 @@ def doAction(option):
                     stdscr.addstr(2, 0, "Spam Message Prompted")
                     spammsg = easygui.textbox("Enter Spam Message", "Prompt", codebox=True)
 
-                    if (spammsg == ""):
+                    if (spammsg == "" or spammsg == None):
                         continue
 
                     fallbackmsg = easygui.textbox("Enter Fallback Message", "Prompt", codebox=True)
