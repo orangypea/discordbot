@@ -493,6 +493,8 @@ def doAction(option):
                     
                     if (namestr == ""):
                         continue
+                    if (settings["tokens"][token-1]["token"] == settings["token"]["token"]):
+                        settings["token"]["name"] = namestr
                     settings["tokens"][token]["name"] = namestr
                     applySettings()
                 else:
@@ -829,6 +831,8 @@ def doAction(option):
                     
                     if (namestr == ""):
                         continue
+                    if (settings["bot_tokens"][token-1]["token"] == settings["bot_token"]["token"]):
+                        settings["bot_token"]["name"] = namestr
                     settings["bot_tokens"][token]["name"] = namestr
                     applySettings()
                 else:
