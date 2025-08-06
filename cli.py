@@ -177,7 +177,7 @@ class spamClient(discord.Client):
         nchannels = []
 
         for channel in guild.channels:
-            if (channel.type == discord.ChannelType.category):
+            if (channel.type == discord.ChannelType.category or channel.type == discord.ChannelType.forum):
                 continue
             
             permissions = channel.permissions_for(user)
@@ -366,7 +366,7 @@ def startSpam():
     
     guild_id = int(idstr)
     client = spamClient()
-    client.run(settings["token"]["token"], log_handler=None)
+    client.run(settings["token"]["token"])
     sys.exit(0)
     return
 
