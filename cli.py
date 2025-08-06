@@ -367,7 +367,7 @@ def startSpam():
     
     guild_id = int(idstr)
     client = spamClient()
-    client.run(settings["token"]["token"])
+    client.run(settings["token"]["token"], log_handler=None)
     sys.exit(0)
     return
 
