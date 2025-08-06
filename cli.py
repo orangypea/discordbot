@@ -318,11 +318,11 @@ class spamClient(discord.Client):
                 if (botType != 4):
                     cmd.target_channel = channel
                 if (botType==0):
-                    await cmd.__call__(channel=channel, **{opt.name:settings[selpreset]["fallback"]})
+                    await cmd.__call__(channel=channel, **{opt.name:settings["presets"][selpreset]["fallback"]})
                 elif (botType==1):
-                    await cmd.__call__(channel=channel, **{opt.name:settings[selpreset]["fallback"], "randomize":settings["randomize"], "slowmode":channel.slwmode_delay>0, "silent":settings["silent"]})
+                    await cmd.__call__(channel=channel, **{opt.name:settings["presets"][selpreset]["fallback"], "randomize":settings["randomize"], "slowmode":channel.slowmode_delay>0, "silent":settings["silent"]})
                 elif (botType==2):
-                    await cmd.__call__(channel=channel, **{opt.name:settings[selpreset]["fallback"], "randomize":settings["randomize"], "slowmode_delay":channel.slwmode_delay})
+                    await cmd.__call__(channel=channel, **{opt.name:settings["presets"][selpreset]["fallback"], "randomize":settings["randomize"], "slowmode_delay":channel.slowmode_delay})
                 elif (botType==3):
                     await cmd.__call__(channel=channel)
                 elif (botType==4):
@@ -367,7 +367,7 @@ def startSpam():
     
     guild_id = int(idstr)
     client = spamClient()
-    client.run(settings["token"]["token"], log_handler=None)
+    client.run(settings["token"]["token"])
     sys.exit(0)
     return
 
