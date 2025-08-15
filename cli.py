@@ -11,7 +11,7 @@ import sys
 import os
 
 settings={"token":{"name":"", "token":""}, "tokens":[], "bot_tokens":[], "bot_token":{"name":"", "token":""}, "app_id":-1, "cmd_name":"", "default_preset": -1, "presets":[], "randomize":False, "auto_leave":-1, "silent":True}
-selpreset = -1
+settings["default_preset"] = -1
 
 def applySettings():
     f=open("settings.json", "w")
@@ -26,9 +26,7 @@ if (os.path.isfile("settings.json")):
     except:
         pass
 
-selpreset = settings["default_preset"]
-
-mainmenu=["Spam", "Edit Tokens", "Edit Application ID and Command", "Set Maximum Spam Count", "Select Preset", "Edit Presets", "Randomize Messages", "Exit", "Start Bot", "Edit Bot Tokens", "Silent Messages"]
+mainmenu=["Spam", "Edit Tokens", "Edit Application ID and Command", "Set Maximum Spam Count", "Edit Presets", "Randomize Messages", "Exit", "Start Bot", "Edit Bot Tokens", "Silent Messages"]
 
 stdscr = curses.initscr()
 curses.noecho()
@@ -73,10 +71,13 @@ def cinput(offsety=0, scr=stdscr, txt="", num_only=False):
     
     return inputstr
 
-def choice(array, offsety=0, scr=stdscr):
+def choice(array, offsety=0, scr=stdscr, option=0):
     global stdscr
-    option=0
     ymax, xmax = scr.getmaxyx()
+
+    if (len(array) <= option):
+        option = len(array)-1
+
     while True:
         scr.clear()
         for i,v in enumerate(array):
@@ -168,7 +169,7 @@ def clear():
 class spamClient(discord.Client):
     global stdscr
     global settings
-    global selpreset
+    global settings
     global guild_id
     global user_spam
 
@@ -185,7 +186,7 @@ class spamClient(discord.Client):
             if (not permissions.view_channel
                 or not permissions.read_message_history
                 or not permissions.read_messages
-                or (not permissions.use_application_commands and not user_spam)
+                or ((not permissions.use_application_commands or not permissions.use_external_apps) and not user_spam)
                 or not permissions.send_messages
                 ):
                 continue
@@ -197,11 +198,6 @@ class spamClient(discord.Client):
         return mchannels, nchannels
 
     async def on_ready(self):
-        curses.nocbreak()
-        stdscr.keypad(False)
-        curses.echo()
-        curses.endwin()
-        clear()
         print(f"Logged in as {self.user}!")
         app=None
         cmd=None
@@ -296,38 +292,43 @@ class spamClient(discord.Client):
                 mchannels, nchannels = await self.fetch_channels(guild, user)
             
             for channel in mchannels:
-                if (botType != 4):
-                    cmd.target_channel = channel
-                if (botType==0):
-                    await cmd.__call__(channel=channel, **{opt.name:settings["presets"][selpreset]["spam"]})
-                elif (botType==1):
-                    await cmd.__call__(channel=channel, **{opt.name:settings["presets"][selpreset]["spam"], "randomize":settings["randomize"], "slowmode":channel.slowmode_delay>0, "silent":settings["silent"]})
-                elif (botType==2):
-                    await cmd.__call__(channel=channel, **{opt.name:settings["presets"][selpreset]["spam"], "randomize":settings["randomize"], "slowmode_delay":channel.slowmode_delay})
-                elif (botType==3):
-                    await cmd.__call__(channel=channel)
-                elif (botType==4):
-                    for i in range(0,5):
-                        await channel.send(settings["presets"][selpreset]["spam"], silent=settings["silent"])
-                channelcounts[channel.id]["count"] += 1
-                clear()
-                for chan in channelcounts.values():
-                    print(f"[{str(chan['count'])}] {chan['name']}")
-
+                try:
+                    if (botType != 4):
+                        cmd.target_channel = channel
+                    if (botType==0):
+                        await cmd.__call__(channel=channel, **{opt.name:settings["presets"][settings["default_preset"]]["spam"]})
+                    elif (botType==1):
+                        await cmd.__call__(channel=channel, **{opt.name:settings["presets"][settings["default_preset"]]["spam"], "randomize":settings["randomize"], "slowmode":channel.slowmode_delay>0, "silent":settings["silent"]})
+                    elif (botType==2):
+                        await cmd.__call__(channel=channel, **{opt.name:settings["presets"][settings["default_preset"]]["spam"], "randomize":settings["randomize"], "slowmode_delay":channel.slowmode_delay})
+                    elif (botType==3):
+                        await cmd.__call__(channel=channel)
+                    elif (botType==4):
+                        for i in range(0,5):
+                            await channel.send(settings["presets"][settings["default_preset"]]["spam"], silent=settings["silent"])
+                    channelcounts[channel.id]["count"] += 1
+                    clear()
+                    for chan in channelcounts.values():
+                        print(f"[{str(chan['count'])}] {chan['name']}")
+                except:
+                    pass
             for channel in nchannels:
-                if (botType != 4):
-                    cmd.target_channel = channel
-                if (botType==0):
-                    await cmd.__call__(channel=channel, **{opt.name:settings["presets"][selpreset]["fallback"]})
-                elif (botType==1):
-                    await cmd.__call__(channel=channel, **{opt.name:settings["presets"][selpreset]["fallback"], "randomize":settings["randomize"], "slowmode":channel.slowmode_delay>0, "silent":settings["silent"]})
-                elif (botType==2):
-                    await cmd.__call__(channel=channel, **{opt.name:settings["presets"][selpreset]["fallback"], "randomize":settings["randomize"], "slowmode_delay":channel.slowmode_delay})
-                elif (botType==3):
-                    await cmd.__call__(channel=channel)
-                elif (botType==4):
-                    for i in range(0,5):
-                        await channel.send(settings["presets"][selpreset]["fallback"], silent=settings["silent"])
+                try:
+                    if (botType != 4):
+                        cmd.target_channel = channel
+                    if (botType==0):
+                        await cmd.__call__(channel=channel, **{opt.name:settings["presets"][settings["default_preset"]]["fallback"]})
+                    elif (botType==1):
+                        await cmd.__call__(channel=channel, **{opt.name:settings["presets"][settings["default_preset"]]["fallback"], "randomize":settings["randomize"], "slowmode":channel.slowmode_delay>0, "silent":settings["silent"]})
+                    elif (botType==2):
+                        await cmd.__call__(channel=channel, **{opt.name:settings["presets"][settings["default_preset"]]["fallback"], "randomize":settings["randomize"], "slowmode_delay":channel.slowmode_delay})
+                    elif (botType==3):
+                        await cmd.__call__(channel=channel)
+                    elif (botType==4):
+                        for i in range(0,5):
+                            await channel.send(settings["presets"][settings["default_preset"]]["fallback"], silent=settings["silent"])
+                except:
+                    pass
                 channelcounts[channel.id]["count"] += 1
                 clear()
                 for chan in channelcounts.values():
@@ -359,10 +360,11 @@ def startSpam():
     if (idstr == ""):
         return
 
-    # wip
-    stdscr.clear()
-    stdscr.addstr(0, 0, "Logging in...")
-    stdscr.refresh()
+    curses.nocbreak()
+    stdscr.keypad(False)
+    curses.echo()
+    curses.endwin()
+    clear()
     
     guild_id = int(idstr)
     client = spamClient()
@@ -371,7 +373,6 @@ def startSpam():
     return
 
 def doAction(option):
-    global selpreset
     global settings
     global curmenu
     global stdscr
@@ -382,7 +383,7 @@ def doAction(option):
         if (option==0):
             stdscr.clear()
             fn=0
-            if (selpreset == -1):
+            if (settings["default_preset"] == -1):
                 stdscr.addstr(fn, 0, "Must specify preset.")
                 fn+=1
 
@@ -406,6 +407,7 @@ def doAction(option):
         elif (option == 1):
             menu = stdscr.subwin(9+1, 70, 1, 0)
             menu.box()
+            prevopt=0
             while True:
                 stdscr.clear()
                 stdscr.addstr(0, 0, "Select Token:")
@@ -416,7 +418,8 @@ def doAction(option):
                         array.append("* "+tk["name"])
                     else:
                         array.append("  "+tk["name"])
-                option = choice(array, 0, menu)
+                option = choice(array, 0, menu, prevopt)
+                prevopt=option
                 if (option == 0):
                     break
                 elif (option == 1):
@@ -529,22 +532,17 @@ def doAction(option):
                 settings["auto_leave"] = int(maxstr)
                 applySettings()
         elif (option == 4):
-            stdscr.clear()
-            stdscr.addstr(0, 0, "Select Preset:")
-            array=["Return"]
-            for preset in settings["presets"]:
-                array.append(preset["name"])
-
-            menu = stdscr.subwin(1, 0)
-            menu.box()
-            preset = choice(array, 0, menu)
-            if (preset != 0):
-                selpreset = preset-1
-        elif (option == 5):
+            prevopt=0
             while True:
-                presetmenu=["Return", "Add Preset", "Edit Preset", "Delete Preset", "Set Default Preset", "Clone Preset"]
-                option = choice(presetmenu)
+                presetmenu=["Return", "Add Preset", "Edit Preset", "Delete Preset", "Clone Preset"]
+                for i,preset in enumerate(settings["presets"]):
+                    if (i != settings["default_preset"]):
+                        presetmenu.append("  "+preset["name"])
+                    else:
+                        presetmenu.append("* "+preset["name"])
+                option = choice(presetmenu, option=prevopt)
 
+                prevopt=option
                 if (option==0):
                     break
                 elif (option==1):
@@ -638,32 +636,14 @@ def doAction(option):
                     elif (preset == settings["default_preset"]):
                         settings["default_preset"] = -1
 
-                    if (preset < selpreset):
-                        selpreset = selpreset-1
-                    elif (preset == selpreset):
-                        selpreset = -1
+                    if (preset < settings["default_preset"]):
+                        settings["default_preset"] = settings["default_preset"]-1
+                    elif (preset == settings["default_preset"]):
+                        settings["default_preset"] = -1
 
                     del settings["presets"][preset]
                     applySettings()
                 elif (option == 4):
-                    stdscr.clear()
-                    stdscr.addstr(0, 0, "Select Preset to Set as Default:")
-                    array=["Return"]
-                    for i,preset in enumerate(settings["presets"]):
-                        if (i != settings["default_preset"]):
-                            array.append("  "+preset["name"])
-                        else:
-                            array.append("* "+preset["name"])
-
-                    menu = stdscr.subwin(1, 0)
-                    menu.box()
-                    preset = choice(array, 0, menu)-1
-                    if (preset == -1):
-                        continue
-
-                    settings["default_preset"] = preset
-                    applySettings()
-                elif (option == 5):
                     stdscr.clear()
                     stdscr.addstr(0, 0, "Select Preset to Clone:")
                     array=["Return"]
@@ -689,8 +669,11 @@ def doAction(option):
 
                     settings["presets"].append({"name":namestr, "spam":preset["spam"], "fallback":preset["fallback"]})
                     applySettings()
+                else:
+                    settings["default_preset"] = option-5
+                    applySettings()
 
-        elif (option == 6):
+        elif (option == 5):
             stdscr.clear()
             stdscr.addstr(0, 0, "Randomize last 5 characters of message?")
             array=[]
@@ -707,9 +690,9 @@ def doAction(option):
 
             settings["randomize"] = (option == 0)
             applySettings()
-        elif (option == 7):
+        elif (option == 6):
             loop = False
-        elif (option == 8):
+        elif (option == 7):
             if (settings["bot_token"]["token"] == ""):
                 stdscr.clear()
                 stdscr.addstr(0, 0, "Must specify bot token.")
@@ -741,9 +724,10 @@ def doAction(option):
                     stdscr.clear()
                     stdscr.addstr(0, 0, str(e))
                     stdscr.getkey()
-        elif (option == 9):
+        elif (option == 8):
             menu = stdscr.subwin(9+1, 70, 1, 0)
             menu.box()
+            prevopt=0
             while True:
                 stdscr.clear()
                 stdscr.addstr(0, 0, "Select Bot Token:")
@@ -754,7 +738,8 @@ def doAction(option):
                         array.append("* "+token["name"])
                     else:
                         array.append("  "+token["name"])
-                option = choice(array, 0, menu)
+                option = choice(array, 0, menu, prevopt)
+                prevopt = option
                 if (option == 0):
                     break
                 elif (option == 1):
@@ -838,7 +823,7 @@ def doAction(option):
                     settings["bot_token"] = settings["bot_tokens"][option-4]
                     applySettings()
                     
-        elif (option == 10):
+        elif (option == 9):
             stdscr.clear()
             stdscr.addstr(0, 0, "Send Silent Messages?")
             array=[]
@@ -858,24 +843,24 @@ def doAction(option):
 
 def main(stdscr):
     global loop
-    global selpreset
-    
+    global settings
+
     menu = stdscr.subwin(10, 70, 1, 0)
     menu.box()
+    opt = 0
     while (loop):
         stdscr.clear()
-        if (selpreset == -1):
+        if (settings["default_preset"] == -1):
             stdscr.addstr(0, 0, "Current Preset: None Selected")
         else:
-            if (len(settings["presets"]) > selpreset):
-                stdscr.addstr(0, 0, "Current Preset: \""+settings["presets"][selpreset]["name"]+"\"")
+            if (len(settings["presets"]) > settings["default_preset"]):
+                stdscr.addstr(0, 0, "Current Preset: \""+settings["presets"][settings["default_preset"]]["name"]+"\"")
         stdscr.addstr(11, 0, "Discord Spammer v2.0 - guns.lol/orangypea <3")
         stdscr.addstr(13, 0, "Current User Token: \""+settings["token"]["name"]+"\"")
         stdscr.addstr(14, 0, "Current Bot Token: \""+settings["bot_token"]["name"]+"\"")
         stdscr.refresh()
-        doAction(choice(curmenu, 0, menu))
-
-
+        opt = choice(curmenu, 0, menu, opt)
+        doAction(opt)
 
 ymax, xmax = stdscr.getmaxyx()
 if (ymax <= 14 or xmax <= 70):
