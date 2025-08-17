@@ -279,6 +279,9 @@ class spamClient(discord.Client):
         clear()
         for chan in channelcounts.values():
             print(f"[{str(chan['count'])}] {chan['name']}")
+
+        lastSpam = {}
+
         while True:
             if (len(channelcounts) == 0):
                 print("No channels available.")
@@ -290,9 +293,29 @@ class spamClient(discord.Client):
             count+=1
             if (guild != None):
                 mchannels, nchannels = await self.fetch_channels(guild, user)
+                idlist = []
+                for chan in mchannels:
+                    idlist.append(chan.id)
+                    if not chan.id in channelcounts:
+                        channelcounts[chan.id] = {"name":chan.name, "count":0}
+                    elif chan.id in channelcounts and channelcounts[chan.id]["name"].endswith(" [Unavailable]"):
+                        channelcounts[chan.id]["name"] = channelcounts[chan.id]["name"].replace(" [Unavailable]", "")
+                
+                for chan in nchannels:
+                    idlist.append(chan.id)
+                    if not chan.id in channelcounts:
+                        channelcounts[chan.id] = {"name":chan.name, "count":0}
+                    elif chan.id in channelcounts and channelcounts[chan.id]["name"].endswith(" [Unavailable]"):
+                        channelcounts[chan.id] = channelcounts[chan.id]["name"].replace(" [Unavailable]", "")
+                
+                for chan in channelcounts.keys():
+                    if not chan in idlist and not channelcounts[chan]["name"].endswith(" [Unavailable]"):
+                        channelcounts[chan]["name"] = channelcounts[chan]["name"]+" [Unavailable]"
             
             for channel in mchannels:
                 try:
+                    if (channel.id in lastSpam and lastSpam[channel.id] + channel.slowmode_delay > time.time()):
+                        continue
                     if (botType != 4):
                         cmd.target_channel = channel
                     if (botType==0):
@@ -306,7 +329,9 @@ class spamClient(discord.Client):
                     elif (botType==4):
                         for i in range(0,5):
                             await channel.send(settings["presets"][settings["default_preset"]]["spam"], silent=settings["silent"])
+                    
                     channelcounts[channel.id]["count"] += 1
+                    lastSpam[channel.id] = time.time()
                     clear()
                     for chan in channelcounts.values():
                         print(f"[{str(chan['count'])}] {chan['name']}")
@@ -314,6 +339,8 @@ class spamClient(discord.Client):
                     pass
             for channel in nchannels:
                 try:
+                    if (channel.id in lastSpam and lastSpam[channel.id] + channel.slowmode_delay > time.time()):
+                        continue
                     if (botType != 4):
                         cmd.target_channel = channel
                     if (botType==0):
@@ -327,12 +354,14 @@ class spamClient(discord.Client):
                     elif (botType==4):
                         for i in range(0,5):
                             await channel.send(settings["presets"][settings["default_preset"]]["fallback"], silent=settings["silent"])
+                    
+                    channelcounts[channel.id]["count"] += 1
+                    lastSpam[channel.id] = time.time()
+                    clear()
+                    for chan in channelcounts.values():
+                        print(f"[{str(chan['count'])}] {chan['name']}")
                 except:
                     pass
-                channelcounts[channel.id]["count"] += 1
-                clear()
-                for chan in channelcounts.values():
-                    print(f"[{str(chan['count'])}] {chan['name']}")
 
 
 def startSpam():
@@ -424,14 +453,14 @@ def doAction(option):
                     break
                 elif (option == 1):
                     stdscr.clear()
-                    stdscr.addstr(0, 0, "New Token Name: ")
+                    stdscr.addstr(0, 0, "Name: ")
                     stdscr.refresh()
                     stdscr.move(1, 0)
                     curses.setsyx(1, 0)
                     curses.doupdate()
                     namestr=cinput(1)
                     stdscr.clear()
-                    stdscr.addstr(0, 0, "New Token: ")
+                    stdscr.addstr(0, 0, "Token: ")
                     stdscr.refresh()
                     stdscr.move(1, 0)
                     curses.setsyx(1, 0)
