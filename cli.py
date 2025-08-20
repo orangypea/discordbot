@@ -26,7 +26,7 @@ if (os.path.isfile("settings.json")):
     except:
         pass
 
-mainmenu=["Spam", "Edit Tokens", "Edit Application ID and Command", "Set Maximum Spam Count", "Edit Presets", "Randomize Messages", "Exit", "Start Bot", "Edit Bot Tokens", "Silent Messages"]
+mainmenu=["Spam", "Edit Tokens", "Edit Application ID and Command", "Set Maximum Spam Count", "Edit Presets", "Randomize Messages", "Exit", "Start Bot", "Edit Bot Tokens", "Silent Messages", "Check Channels"]
 
 stdscr = curses.initscr()
 curses.noecho()
@@ -162,6 +162,7 @@ def choice(array, offsety=0, scr=stdscr, option=0):
 
 guild_id=0
 user_spam=False
+check_chan=False
 
 def clear():
     os.system('cls' if os.name == 'nt' else "printf '\033c'")
@@ -172,6 +173,7 @@ class spamClient(discord.Client):
     global settings
     global guild_id
     global user_spam
+    global check_chan
 
     async def fetch_channels(self, guild, user):
         mchannels = []
@@ -203,7 +205,7 @@ class spamClient(discord.Client):
         cmd=None
         botType=0 # normie bot
         opt=None
-        
+
         if (not user_spam):
             for auth in await self.authorizations():
                 if auth.application.id == settings["app_id"]:
@@ -267,6 +269,18 @@ class spamClient(discord.Client):
             mchannels, nchannels = await self.fetch_channels(guild, user)
         
         clear()
+        
+        if (check_chan):
+            mchannels, nchannels = await self.fetch_channels(guild, user)
+
+            for chan in mchannels:
+                print(chan.name+" ["+str(chan.id)+"] - media")
+            
+            for chan in nchannels:
+                print(chan.name+" ["+str(chan.id)+"] - text-only")
+            print("Close this window or press `Ctrl+C` to quit.")
+            sys.exit(0)
+            return
 
         count=0
         channelcounts = {}
@@ -378,6 +392,9 @@ def startSpam():
     curses.doupdate()
     idstr=cinput(1, num_only=True)
     
+    if (idstr==""):
+        return
+
     menu=["Bot Spam", "User Spam", "Return"]
     option=choice(menu)
     if (option==2):
@@ -386,8 +403,6 @@ def startSpam():
         user_spam=True
 
     # start spam
-    if (idstr == ""):
-        return
 
     curses.nocbreak()
     stdscr.keypad(False)
@@ -402,7 +417,10 @@ def startSpam():
     return
 
 def doAction(option):
+    global check_chan
+    global user_spam
     global settings
+    global guild_id
     global curmenu
     global stdscr
     global loop
@@ -745,7 +763,7 @@ def doAction(option):
                     stdscr.addstr(2, 0, "Press any key to continue...")
                     stdscr.getkey() 
                 else:
-                    subprocess.Popen([term, "-e", os.path.abspath("botenv/bin/python3") + " bot.py "+settings["bot_token"]["token"]], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+                    subprocess.Popen([term, "-e", "\""+os.path.abspath("botenv/bin/python3")+"\"" + " bot.py "+settings["bot_token"]["token"]], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
             elif (os.name == "nt"):
                 try:
                     subprocess.Popen(["botenv\\Scripts\\python", "bot.py", settings["bot_token"]["token"]], creationflags=subprocess.CREATE_NEW_CONSOLE)
@@ -869,6 +887,31 @@ def doAction(option):
 
             settings["silent"] = (option == 0)
             applySettings()
+        elif (option == 10):
+            stdscr.clear()
+            stdscr.addstr(0, 0, "Check Server or Channel ID: ")
+            stdscr.move(1, 0)
+            curses.setsyx(1, 0)
+            curses.doupdate()
+            idstr=cinput(1, num_only=True)
+            
+            if (idstr==""):
+                return
+            
+            curses.nocbreak()
+            stdscr.keypad(False)
+            curses.echo()
+            curses.endwin()
+            clear()
+            
+            guild_id = int(idstr)
+            check_chan = True
+            user_spam = True
+            client = spamClient()
+            client.run(settings["token"]["token"])
+            sys.exit(0)
+            return
+            
 
 def main(stdscr):
     global loop
