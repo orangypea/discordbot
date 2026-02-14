@@ -18,7 +18,7 @@ tree = app_commands.CommandTree(client)
 )
 @app_commands.describe(text="text")
 async def spam(interaction, text: str, randomize: bool = False, slowmode: bool = False, silent: bool = True):
-    await interaction.response.send_message("guns.lol/orangypea <3", ephemeral=True, silent=True)
+    await interaction.response.send_message("peabox.org <3", ephemeral=True, silent=True)
 
     ws = interaction.followup
 
@@ -48,7 +48,7 @@ async def spam(interaction, text: str, randomize: bool = False, slowmode: bool =
 )
 @app_commands.describe(text="send")
 async def send(interaction, text: str, silent: bool = True):
-    await interaction.response.send_message("guns.lol/orangypea <3", ephemeral=True, silent=True)
+    await interaction.response.send_message("peabox.org <3", ephemeral=True, silent=True)
 
     ws = interaction.followup
     await ws.send(text, silent=silent)
