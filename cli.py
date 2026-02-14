@@ -927,7 +927,7 @@ def main(stdscr):
         else:
             if (len(settings["presets"]) > settings["default_preset"]):
                 stdscr.addstr(0, 0, "Current Preset: \""+settings["presets"][settings["default_preset"]]["name"]+"\"")
-        stdscr.addstr(11, 0, "Discord Spammer v2.0 - guns.lol/orangypea <3")
+        stdscr.addstr(11, 0, "Discord Spammer v2.0 - peabox.org <3")
         stdscr.addstr(13, 0, "Current User Token: \""+settings["token"]["name"]+"\"")
         stdscr.addstr(14, 0, "Current Bot Token: \""+settings["bot_token"]["name"]+"\"")
         stdscr.refresh()
