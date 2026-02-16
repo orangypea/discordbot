@@ -207,9 +207,9 @@ class spamClient(discord.Client):
         opt=None
 
         if (not user_spam):
-            for auth in await self.authorizations():
-                if auth.application.id == settings["app_id"]:
-                    app = auth.application
+            for iterApp in await self.applications():
+                if iterApp.id == settings["app_id"]:
+                    app = iterApp
             if (app == None):
                 print("Application is not installed, or wrong ID was provided.")
                 sys.exit(1)
@@ -927,7 +927,7 @@ def main(stdscr):
         else:
             if (len(settings["presets"]) > settings["default_preset"]):
                 stdscr.addstr(0, 0, "Current Preset: \""+settings["presets"][settings["default_preset"]]["name"]+"\"")
-        stdscr.addstr(11, 0, "Discord Spammer v2.0 - peabox.org <3")
+        stdscr.addstr(11, 0, "Discord Spammer v2.0a - peabox.org <3")
         stdscr.addstr(13, 0, "Current User Token: \""+settings["token"]["name"]+"\"")
         stdscr.addstr(14, 0, "Current Bot Token: \""+settings["bot_token"]["name"]+"\"")
         stdscr.refresh()
