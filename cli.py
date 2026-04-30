@@ -274,9 +274,17 @@ class spamClient(discord.Client):
             mchannels, nchannels = await self.fetch_channels(guild, user)
 
             for chan in mchannels:
-                print(chan.name+" ["+str(chan.id)+"] - media")
+                permissions = chan.permissions_for(user)
+
+                useronly=""
+                if (not permissions.use_external_apps or not permissions.use_application_commands):
+                    useronly=" [USER ONLY]"
+                print(f'{chan.name} [{str(chan.id)}] - media{useronly}')
             
             for chan in nchannels:
+                useronly=""
+                if (not permissions.use_external_apps or not permissions.use_application_commands):
+                    useronly=" [USER ONLY]"
                 print(chan.name+" ["+str(chan.id)+"] - text-only")
             print("Close this window or press `Ctrl+C` to quit.")
             sys.exit(0)
@@ -341,7 +349,7 @@ class spamClient(discord.Client):
                     elif (botType==3):
                         await cmd.__call__(channel=channel)
                     elif (botType==4):
-                        for i in range(0,5):
+                        for i in range(0,1):
                             await channel.send(settings["presets"][settings["default_preset"]]["spam"], silent=settings["silent"])
                     
                     channelcounts[channel.id]["count"] += 1
@@ -579,15 +587,20 @@ def doAction(option):
                 settings["auto_leave"] = int(maxstr)
                 applySettings()
         elif (option == 4):
+            menu = stdscr.subwin(9+1, 70, 1, 0)
+            menu.box()
             prevopt=0
             while True:
+                stdscr.clear()
+                stdscr.addstr(0, 0, "Select Preset:")
                 presetmenu=["Return", "Add Preset", "Edit Preset", "Delete Preset", "Clone Preset"]
                 for i,preset in enumerate(settings["presets"]):
                     if (i != settings["default_preset"]):
                         presetmenu.append("  "+preset["name"])
                     else:
                         presetmenu.append("* "+preset["name"])
-                option = choice(presetmenu, option=prevopt)
+                option = choice(presetmenu, scr=menu, option=prevopt)
+                stdscr.refresh()
 
                 prevopt=option
                 if (option==0):
@@ -623,8 +636,6 @@ def doAction(option):
                     for preset in settings["presets"]:
                         array.append(preset["name"])
 
-                    menu = stdscr.subwin(1, 0)
-                    menu.box()
                     preset = choice(array, 0, menu)-1
                     if (preset == -1):
                         continue
@@ -672,8 +683,6 @@ def doAction(option):
                     for preset in settings["presets"]:
                         array.append(preset["name"])
 
-                    menu = stdscr.subwin(1, 0)
-                    menu.box()
                     preset = choice(array, 0, menu)-1
                     if (preset == -1):
                         continue
@@ -697,8 +706,6 @@ def doAction(option):
                     for preset in settings["presets"]:
                         array.append(preset["name"])
 
-                    menu = stdscr.subwin(1, 0)
-                    menu.box()
                     preset = choice(array, 0, menu)-1
                     if (preset == -1):
                         continue
@@ -927,7 +934,7 @@ def main(stdscr):
         else:
             if (len(settings["presets"]) > settings["default_preset"]):
                 stdscr.addstr(0, 0, "Current Preset: \""+settings["presets"][settings["default_preset"]]["name"]+"\"")
-        stdscr.addstr(11, 0, "Discord Spammer v2.0a - peabox.org <3")
+        stdscr.addstr(11, 0, "Discord Spammer v2.1 - peabox.org <3")
         stdscr.addstr(13, 0, "Current User Token: \""+settings["token"]["name"]+"\"")
         stdscr.addstr(14, 0, "Current Bot Token: \""+settings["bot_token"]["name"]+"\"")
         stdscr.refresh()
