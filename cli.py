@@ -214,6 +214,7 @@ class spamClient(discord.Client):
             if (app == None):
                 print("Application is not installed, or wrong ID was provided.")
                 await self.close()
+                return
 
             for command in await app.bot.application_commands():
                 if (command.name.lower().find(settings["cmd_name"].lower()) != -1):
@@ -222,6 +223,7 @@ class spamClient(discord.Client):
             if (cmd == None):
                 print("Command not found. Typo or Wrong Application ID?")
                 await self.close()
+                return
 
             for i,option in enumerate(cmd.options):
                 if (option.name == "slowmode"):
@@ -238,6 +240,7 @@ class spamClient(discord.Client):
             if (opt == None and botType == 0):
                 print("Option not found. Unsupported Bot?")
                 await self.close()
+                return
         else:
             botType = 4 # user bot
         
@@ -254,6 +257,7 @@ class spamClient(discord.Client):
             if (channel == None):
                 print("Server/Channel not found. Wrong ID? Server/Channel Unavailable?")
                 await self.close()
+                return
 
             if (channel.guild != None):
                 user = channel.guild.get_member(self.user.id)
