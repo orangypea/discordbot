@@ -2,6 +2,7 @@ import discord
 from curses import wrapper
 from shutil import which
 import subprocess
+import logging
 import easygui
 import curses
 import math
@@ -212,7 +213,7 @@ class spamClient(discord.Client):
                     app = iterApp.application
             if (app == None):
                 print("Application is not installed, or wrong ID was provided.")
-                sys.exit(1)
+                await self.close()
 
             for command in await app.bot.application_commands():
                 if (command.name.lower().find(settings["cmd_name"].lower()) != -1):
@@ -220,7 +221,7 @@ class spamClient(discord.Client):
             
             if (cmd == None):
                 print("Command not found. Typo or Wrong Application ID?")
-                sys.exit(1)
+                await self.close()
 
             for i,option in enumerate(cmd.options):
                 if (option.name == "slowmode"):
@@ -236,7 +237,7 @@ class spamClient(discord.Client):
 
             if (opt == None and botType == 0):
                 print("Option not found. Unsupported Bot?")
-                sys.exit(1)
+                await self.close()
         else:
             botType = 4 # user bot
         
@@ -252,7 +253,7 @@ class spamClient(discord.Client):
             channel=self.get_channel(guild_id)
             if (channel == None):
                 print("Server/Channel not found. Wrong ID? Server/Channel Unavailable?")
-                sys.exit(1)
+                await self.close()
 
             if (channel.guild != None):
                 user = channel.guild.get_member(self.user.id)
@@ -286,8 +287,7 @@ class spamClient(discord.Client):
                 if (not permissions.use_external_apps or not permissions.use_application_commands):
                     useronly=" [USER ONLY]"
                 print(chan.name+" ["+str(chan.id)+"] - text-only")
-            print("Close this window or press `Ctrl+C` to quit.")
-            sys.exit(0)
+            await self.close()
             return
 
         count=0
@@ -307,11 +307,11 @@ class spamClient(discord.Client):
         while True:
             if (len(channelcounts) == 0):
                 print("No channels available.")
-                sys.exit(1)
+                break
 
             if (settings["auto_leave"] != -1 and count>=settings["auto_leave"]):
                 print("Spam finished.")
-                sys.exit(0)
+                break
             count+=1
             if (guild != None):
                 mchannels, nchannels = await self.fetch_channels(guild, user)
@@ -384,6 +384,7 @@ class spamClient(discord.Client):
                         print(f"[{str(chan['count'])}] {chan['name']}")
                 except:
                     pass
+        await self.close()
 
 
 def startSpam():
@@ -420,7 +421,7 @@ def startSpam():
     
     guild_id = int(idstr)
     client = spamClient()
-    client.run(settings["token"]["token"])
+    client.run(settings["token"]["token"], log_level=logging.WARNING)
     sys.exit(0)
     return
 
@@ -915,7 +916,7 @@ def doAction(option):
             check_chan = True
             user_spam = True
             client = spamClient()
-            client.run(settings["token"]["token"])
+            client.run(settings["token"]["token"], log_handler=None)
             sys.exit(0)
             return
             
@@ -934,7 +935,7 @@ def main(stdscr):
         else:
             if (len(settings["presets"]) > settings["default_preset"]):
                 stdscr.addstr(0, 0, "Current Preset: \""+settings["presets"][settings["default_preset"]]["name"]+"\"")
-        stdscr.addstr(11, 0, "Discord Spammer v2.2 - peabox.org <3")
+        stdscr.addstr(11, 0, "Discord Spammer v2.3 - peabox.org <3")
         stdscr.addstr(13, 0, "Current User Token: \""+settings["token"]["name"]+"\"")
         stdscr.addstr(14, 0, "Current Bot Token: \""+settings["bot_token"]["name"]+"\"")
         stdscr.refresh()
